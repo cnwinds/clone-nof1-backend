@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# 环境变量
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 数据库
+*.db
+*.sqlite3
+
+# 日志
+*.log
+logs/
+
+# 测试
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+
+# macOS
+.DS_Store
+
+# Alembic
+alembic/versions/*.pyc
+

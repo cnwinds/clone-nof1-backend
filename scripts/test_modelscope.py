@@ -1,0 +1,117 @@
+"""
+测试 ModelScope API 连接
+文档: https://www.modelscope.cn/docs/model-service/API-Inference/intro
+"""
+import sys
+from pathlib import Path
+import asyncio
+
+# 添加项目根目录到路径
+sys.path.append(str(Path(__file__).parent.parent))
+
+from app.strategy.llm_providers.qwen import QwenProvider
+from app.core.config import settings
+
+
+async def test_modelscope():
+    """测试 ModelScope API"""
+    print("=" * 60)
+    print("测试 ModelScope API (通义千问)")
+    print("=" * 60)
+    print()
+    
+    # 检查 API 密钥
+    if not settings.MODELSCOPE_API_KEY:
+        print("❌ 错误: 未配置 MODELSCOPE_API_KEY")
+        print()
+        print("请在 .env 文件中添加:")
+        print("MODELSCOPE_API_KEY=your-modelscope-token-here")
+        print()
+        print("获取 API Token:")
+        print("https://www.modelscope.cn/my/myaccesstoken")
+        return
+    
+    print(f"✓ API 密钥已配置: {settings.MODELSCOPE_API_KEY[:20]}...")
+    print()
+    
+    try:
+        # 创建提供商实例
+        provider = QwenProvider(settings.MODELSCOPE_API_KEY)
+        print("✓ QwenProvider 初始化成功")
+        print()
+        
+        # 测试简单的提示词
+        test_prompt = """
+你是一个加密货币交易专家。请根据以下市场数据给出交易建议：
+
+BTC 当前价格: $67,000
+24h 涨跌: +2.5%
+市场情绪: 看涨
+
+请以 JSON 格式返回你的分析和决策:
+{
+    "reasoning": "你的分析思路",
+    "decisions": [
+        {
+            "symbol": "BTC",
+            "action": "BUY/SELL/HOLD",
+            "quantity": 数量,
+            "confidence": 0-100
+        }
+    ]
+}
+"""
+        
+        print("🤖 正在调用 ModelScope API...")
+        print(f"模型: Qwen/Qwen3-235B-A22B-Instruct-2507")
+        print()
+        
+        # 调用 API
+        result = await provider.generate_decision(
+            prompt=test_prompt,
+            model="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            temperature=0.7
+        )
+        
+        print("✅ API 调用成功！")
+        print()
+        print("=" * 60)
+        print("返回结果:")
+        print("=" * 60)
+        print()
+        print(f"推理过程: {result.get('reasoning', 'N/A')}")
+        print()
+        print("交易决策:")
+        for decision in result.get('decisions', []):
+            print(f"  - 币种: {decision.get('symbol', 'N/A')}")
+            print(f"    动作: {decision.get('action', 'N/A')}")
+            print(f"    数量: {decision.get('quantity', 0)}")
+            print(f"    信心: {decision.get('confidence', 0)}%")
+            print()
+        
+        print("=" * 60)
+        print("🎉 测试通过！ModelScope API 工作正常")
+        print("=" * 60)
+        
+    except Exception as e:
+        print()
+        print("=" * 60)
+        print("❌ 测试失败")
+        print("=" * 60)
+        print()
+        print(f"错误信息: {e}")
+        print()
+        print("常见问题:")
+        print("1. 检查 API Token 是否正确")
+        print("2. 检查网络连接")
+        print("3. 检查 API Token 是否有效（未过期）")
+        print()
+        print("获取帮助:")
+        print("- ModelScope 文档: https://www.modelscope.cn/docs/model-service/API-Inference/intro")
+        print("- API Token 管理: https://www.modelscope.cn/my/myaccesstoken")
+        raise
+
+
+if __name__ == "__main__":
+    asyncio.run(test_modelscope())
+
