@@ -13,19 +13,17 @@ from datetime import datetime
 router = APIRouter()
 
 
-@router.get("/prices", response_model=APIResponse[List[CryptoPriceResponse]])
+@router.get("/prices")
 async def get_prices(db: Session = Depends(get_db)):
     """获取加密货币价格"""
     try:
         prices = PriceService.get_all_prices(db)
         
-        # 构建响应数据（兼容前端格式）
+        # 构建响应数据
         prices_data = []
         for price in prices:
-            price_dict = CryptoPriceResponse.model_validate(price).model_dump()
-            # 前端期望的字段映射
-            price_dict["price_change_percentage_24h"] = price_dict.get("price_change_24h")
-            prices_data.append(CryptoPriceResponse(**price_dict))
+            price_dict = CryptoPriceResponse.model_validate(price).model_dump(by_alias=False)
+            prices_data.append(price_dict)
         
         return APIResponse(
             success=True,
@@ -40,7 +38,7 @@ async def get_prices(db: Session = Depends(get_db)):
         )
 
 
-@router.get("/prices/{symbol}", response_model=APIResponse[CryptoPriceResponse])
+@router.get("/prices/{symbol}")
 async def get_price(symbol: str, db: Session = Depends(get_db)):
     """获取单个币种价格"""
     try:
@@ -54,7 +52,7 @@ async def get_price(symbol: str, db: Session = Depends(get_db)):
         
         return APIResponse(
             success=True,
-            data=CryptoPriceResponse.model_validate(price),
+            data=CryptoPriceResponse.model_validate(price).model_dump(by_alias=False),
             timestamp=datetime.utcnow()
         )
     except Exception as e:

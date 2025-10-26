@@ -4,7 +4,6 @@
 """
 from openai import AsyncOpenAI
 from typing import Dict
-import json
 import logging
 
 logger = logging.getLogger(__name__)
@@ -25,7 +24,7 @@ class QwenProvider:
         prompt: str,
         model: str = "Qwen/Qwen3-235B-A22B-Instruct-2507",
         temperature: float = 0.7
-    ) -> Dict:
+    ) -> str:
         """
         生成交易决策
         
@@ -35,10 +34,7 @@ class QwenProvider:
             temperature: 温度参数
             
         Returns:
-            {
-                "reasoning": "...",
-                "decisions": [...]
-            }
+            决策文本字符串
         """
         try:
             response = await self.client.chat.completions.create(
@@ -51,28 +47,19 @@ class QwenProvider:
             )
             
             content = response.choices[0].message.content.strip()
+            return content
             
-            # 尝试解析 JSON
-            if content.startswith("```json"):
-                content = content[7:]
-            if content.startswith("```"):
-                content = content[3:]
-            if content.endswith("```"):
-                content = content[:-3]
-            
-            content = content.strip()
-            
-            result = json.loads(content)
-            return result
-            
-        except json.JSONDecodeError as e:
-            logger.error(f"Qwen 返回内容无法解析为 JSON: {content}")
-            # 返回默认的 HOLD 决策
-            return {
-                "reasoning": "解析错误，保持现有仓位",
-                "decisions": [{"symbol": "BTC", "action": "HOLD", "quantity": 0, "confidence": 0}]
-            }
         except Exception as e:
             logger.error(f"Qwen API 调用失败: {e}")
-            raise
+            # 返回默认的 HOLD 决策
+            return """
+### chain_of_thought
+
+解析错误，保持现有仓位
+
+### trading_decisions
+
+BTC HOLD 0%
+QUANTITY: 0
+"""
 

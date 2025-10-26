@@ -10,11 +10,9 @@ sys.path.append(str(Path(__file__).parent.parent))
 from app.core.database import SessionLocal, Base, engine
 from app.models import AIModel, Season, SeasonModel, ValueHistory
 from app.core.config import settings
+from app.utils.html_cleaner import clean_prompt_text
 from datetime import datetime, timedelta
 import uuid
-
-# 创建所有表
-Base.metadata.create_all(bind=engine)
 
 def create_demo_models(db):
     """创建演示模型"""
@@ -28,7 +26,7 @@ def create_demo_models(db):
             "description": "阿里通义千问3 Max，性能卓越",
             "llm_provider": "qwen",
             "llm_model": "Qwen/Qwen3-235B-A22B-Instruct-2507",
-            "strategy_prompt": "你是一个保守型交易者，偏好做多，杠杆5-10x，只在明确趋势中交易。",
+            "strategy_prompt": clean_prompt_text("你是一个保守型交易者，偏好做多，杠杆5-10x，只在明确趋势中交易。"),
             "trading_mode": "paper",
             "exchange_name": "binance",
             "execution_interval": 15,
@@ -43,7 +41,7 @@ def create_demo_models(db):
             "description": "DeepSeek V3，强大的推理能力",
             "llm_provider": "deepseek",
             "llm_model": "deepseek-chat",
-            "strategy_prompt": "你是一个理性的量化交易者，基于数据和趋势分析，杠杆5-12x，重视风险控制。",
+            "strategy_prompt": clean_prompt_text("你是一个理性的量化交易者，基于数据和趋势分析，杠杆5-12x，重视风险控制。"),
             "trading_mode": "paper",
             "exchange_name": "binance",
             "execution_interval": 15,
@@ -58,7 +56,7 @@ def create_demo_models(db):
             "description": "OpenAI GPT-4 Turbo，强大的推理能力",
             "llm_provider": "openai",
             "llm_model": "gpt-4-turbo-preview",
-            "strategy_prompt": "你是一个平衡型交易者，做多做空都考虑，杠杆5-15x，善于捕捉趋势。",
+            "strategy_prompt": clean_prompt_text("你是一个平衡型交易者，做多做空都考虑，杠杆5-15x，善于捕捉趋势。"),
             "trading_mode": "paper",
             "exchange_name": "binance",
             "execution_interval": 20,
@@ -73,7 +71,7 @@ def create_demo_models(db):
             "description": "Anthropic Claude 3 Opus，细致的分析能力",
             "llm_provider": "anthropic",
             "llm_model": "claude-3-opus-20240229",
-            "strategy_prompt": "你是一个激进型交易者，积极做空做多，杠杆10-20x，捕捉短期机会。",
+            "strategy_prompt": clean_prompt_text("你是一个激进型交易者，积极做空做多，杠杆10-20x，捕捉短期机会。"),
             "trading_mode": "paper",
             "exchange_name": "binance",
             "execution_interval": 10,
@@ -88,7 +86,7 @@ def create_demo_models(db):
             "description": "Google Gemini Ultra（模拟）",
             "llm_provider": "openai",  # 使用 OpenAI 替代
             "llm_model": "gpt-4",
-            "strategy_prompt": "你是一个数据驱动型交易者，基于技术指标，杠杆8-12x。",
+            "strategy_prompt": clean_prompt_text("你是一个数据驱动型交易者，基于技术指标，杠杆8-12x。"),
             "trading_mode": "paper",
             "exchange_name": "binance",
             "execution_interval": 15,
@@ -103,7 +101,7 @@ def create_demo_models(db):
             "description": "Meta Llama 3 405B（模拟）",
             "llm_provider": "anthropic",  # 使用 Claude 替代
             "llm_model": "claude-3-sonnet-20240229",
-            "strategy_prompt": "你是一个趋势跟随者，只做强趋势，杠杆3-8x，严格止损。",
+            "strategy_prompt": clean_prompt_text("你是一个趋势跟随者，只做强趋势，杠杆3-8x，严格止损。"),
             "trading_mode": "paper",
             "exchange_name": "binance",
             "execution_interval": 25,

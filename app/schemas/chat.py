@@ -23,29 +23,33 @@ class ChatSection(BaseModel):
 
 class AutomatedChatBase(BaseModel):
     """自动化聊天基础字段"""
-    season_model_id: str
+    seasonModelId: str = Field(..., alias="season_model_id")
     content: str = Field(..., description="摘要内容")
-    user_prompt: Optional[str] = None
-    chain_of_thought: Optional[str] = None
-    trading_decisions: Optional[List[dict]] = None
+    userPrompt: Optional[str] = Field(None, alias="user_prompt")
+    chainOfThought: Optional[str] = Field(None, alias="chain_of_thought")
+    tradingDecisions: Optional[List[dict]] = Field(None, alias="trading_decisions")
+
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class AutomatedChatCreate(AutomatedChatBase):
     """创建自动化聊天"""
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
+    model_config = ConfigDict(populate_by_name=True)
+
 
 class AutomatedChatResponse(AutomatedChatBase):
     """自动化聊天响应"""
     id: str
     timestamp: datetime
-    created_at: datetime
+    createdAt: datetime = Field(alias="created_at")
     
     # 前端需要的额外字段
-    model_name: Optional[str] = None
+    modelName: Optional[str] = Field(None, alias="model_name")
     icon: Optional[str] = None
     expandable: bool = True
     sections: Optional[List[ChatSection]] = None
     
-    model_config = ConfigDict(from_attributes=True, protected_namespaces=())
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True, protected_namespaces=())
 

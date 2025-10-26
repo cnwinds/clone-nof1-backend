@@ -1,7 +1,7 @@
 """
 加密货币价格 Schema
 """
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional
 from datetime import datetime
 
@@ -11,17 +11,18 @@ class CryptoPriceBase(BaseModel):
     id: str
     symbol: str = Field(..., description="交易对符号")
     name: str = Field(..., description="币种名称")
-    current_price: float = Field(..., description="当前价格")
-    price_change_percentage_24h: Optional[float] = Field(None, description="24小时涨跌幅")
-    market_cap: Optional[float] = Field(None, description="市值")
-    high_24h: Optional[float] = Field(None, description="24小时最高价")
-    low_24h: Optional[float] = Field(None, description="24小时最低价")
+    currentPrice: float = Field(..., alias="current_price", description="当前价格")
+    priceChangePercentage24h: Optional[float] = Field(None, alias="price_change_percentage_24h", description="24小时涨跌幅")
+    marketCap: Optional[float] = Field(None, alias="market_cap", description="市值")
+    high24h: Optional[float] = Field(None, alias="high_24h", description="24小时最高价")
+    low24h: Optional[float] = Field(None, alias="low_24h", description="24小时最低价")
+
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class CryptoPriceResponse(CryptoPriceBase):
     """加密货币价格响应"""
-    last_updated: datetime
+    lastUpdated: datetime = Field(alias="last_updated", description="最后更新时间")
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 

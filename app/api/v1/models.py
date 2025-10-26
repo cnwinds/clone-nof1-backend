@@ -13,14 +13,14 @@ from datetime import datetime
 router = APIRouter()
 
 
-@router.get("/models", response_model=APIResponse[List[AIModelResponse]])
+@router.get("/models")
 async def get_models(db: Session = Depends(get_db)):
     """获取激活的模型（参与交易的模型）"""
     try:
         models = ModelService.get_active_models(db)
         return APIResponse(
             success=True,
-            data=[AIModelResponse.model_validate(m) for m in models],
+            data=[AIModelResponse.model_validate(m).model_dump(by_alias=False) for m in models],
             timestamp=datetime.utcnow()
         )
     except Exception as e:
@@ -31,14 +31,14 @@ async def get_models(db: Session = Depends(get_db)):
         )
 
 
-@router.get("/models/all", response_model=APIResponse[List[AIModelResponse]])
+@router.get("/models/all")
 async def get_all_models(db: Session = Depends(get_db)):
     """获取所有模型（包括未激活的）- 管理员接口"""
     try:
         models = ModelService.get_all_models(db)
         return APIResponse(
             success=True,
-            data=[AIModelResponse.model_validate(m) for m in models],
+            data=[AIModelResponse.model_validate(m).model_dump(by_alias=False) for m in models],
             timestamp=datetime.utcnow()
         )
     except Exception as e:
@@ -49,7 +49,7 @@ async def get_all_models(db: Session = Depends(get_db)):
         )
 
 
-@router.get("/models/{model_id}", response_model=APIResponse[AIModelResponse])
+@router.get("/models/{model_id}")
 async def get_model(model_id: str, db: Session = Depends(get_db)):
     """获取单个模型"""
     try:
@@ -63,7 +63,7 @@ async def get_model(model_id: str, db: Session = Depends(get_db)):
         
         return APIResponse(
             success=True,
-            data=AIModelResponse.model_validate(model),
+            data=AIModelResponse.model_validate(model).model_dump(by_alias=False),
             timestamp=datetime.utcnow()
         )
     except Exception as e:
@@ -74,7 +74,7 @@ async def get_model(model_id: str, db: Session = Depends(get_db)):
         )
 
 
-@router.post("/models", response_model=APIResponse[AIModelResponse])
+@router.post("/models")
 async def create_model(model_data: AIModelCreate, db: Session = Depends(get_db)):
     """创建模型"""
     try:
@@ -90,7 +90,7 @@ async def create_model(model_data: AIModelCreate, db: Session = Depends(get_db))
         model = ModelService.create_model(db, model_data)
         return APIResponse(
             success=True,
-            data=AIModelResponse.model_validate(model),
+            data=AIModelResponse.model_validate(model).model_dump(by_alias=False),
             timestamp=datetime.utcnow()
         )
     except Exception as e:
@@ -101,7 +101,7 @@ async def create_model(model_data: AIModelCreate, db: Session = Depends(get_db))
         )
 
 
-@router.put("/models/{model_id}", response_model=APIResponse[AIModelResponse])
+@router.put("/models/{model_id}")
 async def update_model(
     model_id: str,
     model_data: AIModelUpdate,
@@ -119,7 +119,7 @@ async def update_model(
         
         return APIResponse(
             success=True,
-            data=AIModelResponse.model_validate(model),
+            data=AIModelResponse.model_validate(model).model_dump(by_alias=False),
             timestamp=datetime.utcnow()
         )
     except Exception as e:
@@ -130,7 +130,7 @@ async def update_model(
         )
 
 
-@router.delete("/models/{model_id}", response_model=APIResponse[dict])
+@router.delete("/models/{model_id}")
 async def delete_model(model_id: str, db: Session = Depends(get_db)):
     """删除模型"""
     try:

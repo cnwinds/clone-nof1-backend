@@ -13,7 +13,7 @@ from datetime import datetime
 router = APIRouter()
 
 
-@router.get("/trades", response_model=APIResponse[List[TradeResponse]])
+@router.get("/trades")
 async def get_trades(
     season_id: Optional[str] = Query(None, description="赛季 ID"),
     model_id: Optional[str] = Query(None, description="模型 ID"),
@@ -27,9 +27,9 @@ async def get_trades(
         # 构建响应数据（添加模型名称）
         trades_data = []
         for trade in trades:
-            trade_dict = TradeResponse.model_validate(trade).model_dump()
-            trade_dict["model_name"] = trade.season_model.model.display_name
-            trades_data.append(TradeResponse(**trade_dict))
+            trade_dict = TradeResponse.model_validate(trade).model_dump(by_alias=False)
+            trade_dict["modelName"] = trade.season_model.model.display_name
+            trades_data.append(trade_dict)
         
         return APIResponse(
             success=True,
@@ -44,7 +44,7 @@ async def get_trades(
         )
 
 
-@router.get("/trades/{trade_id}", response_model=APIResponse[TradeResponse])
+@router.get("/trades/{trade_id}")
 async def get_trade(trade_id: str, db: Session = Depends(get_db)):
     """获取单个交易"""
     try:
@@ -58,7 +58,7 @@ async def get_trade(trade_id: str, db: Session = Depends(get_db)):
         
         return APIResponse(
             success=True,
-            data=TradeResponse.model_validate(trade),
+            data=TradeResponse.model_validate(trade).model_dump(by_alias=False),
             timestamp=datetime.utcnow()
         )
     except Exception as e:

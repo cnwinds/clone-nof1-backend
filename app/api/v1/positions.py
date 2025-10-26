@@ -13,7 +13,7 @@ from datetime import datetime
 router = APIRouter()
 
 
-@router.get("/positions", response_model=APIResponse[List[PositionResponse]])
+@router.get("/positions")
 async def get_positions(
     season_id: Optional[str] = Query(None, description="赛季 ID"),
     model_id: Optional[str] = Query(None, description="模型 ID"),
@@ -26,12 +26,12 @@ async def get_positions(
         # 构建响应数据（添加额外字段）
         positions_data = []
         for pos in positions:
-            pos_dict = PositionResponse.model_validate(pos).model_dump()
-            pos_dict["model_name"] = pos.season_model.model.display_name
-            pos_dict["model_icon"] = pos.season_model.model.icon
-            pos_dict["coin_logo"] = pos.symbol[0]  # 简化：使用首字母
-            pos_dict["available_cash"] = float(pos.season_model.available_cash)
-            positions_data.append(PositionResponse(**pos_dict))
+            pos_dict = PositionResponse.model_validate(pos).model_dump(by_alias=False)
+            pos_dict["modelName"] = pos.season_model.model.display_name
+            pos_dict["modelIcon"] = pos.season_model.model.icon
+            pos_dict["coinLogo"] = pos.symbol[0]  # 简化：使用首字母
+            pos_dict["availableCash"] = float(pos.season_model.available_cash)
+            positions_data.append(pos_dict)
         
         return APIResponse(
             success=True,
@@ -46,7 +46,7 @@ async def get_positions(
         )
 
 
-@router.get("/positions/{position_id}", response_model=APIResponse[PositionResponse])
+@router.get("/positions/{position_id}")
 async def get_position(position_id: str, db: Session = Depends(get_db)):
     """获取单个持仓"""
     try:
@@ -60,7 +60,7 @@ async def get_position(position_id: str, db: Session = Depends(get_db)):
         
         return APIResponse(
             success=True,
-            data=PositionResponse.model_validate(position),
+            data=PositionResponse.model_validate(position).model_dump(by_alias=False),
             timestamp=datetime.utcnow()
         )
     except Exception as e:

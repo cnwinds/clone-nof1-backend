@@ -13,7 +13,7 @@ from datetime import datetime
 router = APIRouter()
 
 
-@router.get("/automated-chats", response_model=APIResponse[List[AutomatedChatResponse]])
+@router.get("/automated-chats")
 async def get_chats(
     season_id: Optional[str] = Query(None, description="赛季 ID"),
     model_id: Optional[str] = Query(None, description="模型 ID"),
@@ -35,8 +35,8 @@ async def get_chats(
         # 构建响应数据
         chats_data = []
         for chat in chats:
-            chat_dict = AutomatedChatResponse.model_validate(chat).model_dump()
-            chat_dict["model_name"] = chat.season_model.model.display_name
+            chat_dict = AutomatedChatResponse.model_validate(chat).model_dump(by_alias=False)
+            chat_dict["modelName"] = chat.season_model.model.display_name
             chat_dict["icon"] = chat.season_model.model.icon
             
             # 构建可展开的 sections
@@ -60,7 +60,7 @@ async def get_chats(
             chat_dict["sections"] = sections
             chat_dict["expandable"] = True
             
-            chats_data.append(AutomatedChatResponse(**chat_dict))
+            chats_data.append(chat_dict)
         
         return APIResponse(
             success=True,

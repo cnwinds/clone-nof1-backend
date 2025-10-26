@@ -6,7 +6,13 @@ from app.strategy.llm_providers.openai import OpenAIProvider
 from app.strategy.llm_providers.anthropic import AnthropicProvider
 from app.strategy.llm_providers.qwen import QwenProvider
 from app.strategy.llm_providers.deepseek import DeepSeekProvider
-from app.strategy.prompts import TRADING_PROMPT_TEMPLATE
+from app.strategy.prompts import (
+    TRADING_PROMPT_TEMPLATE, 
+    get_market_data_format, 
+    get_analysis_instructions, 
+    get_decision_format
+)
+from app.utils.html_cleaner import clean_prompt_text
 from app.exchange.factory import ExchangeFactory
 from app.models import SeasonModel, Trade, Position, AutomatedChat
 from app.core.config import settings
@@ -81,13 +87,16 @@ class LLMStrategy(BaseStrategy):
                 season_model.model.llm_provider,
                 season_model.model.llm_model
             )
-            decision = await llm_provider.generate_decision(prompt, llm_model)
+            decision_text = await llm_provider.generate_decision(prompt, llm_model)
+            
+            # 解析决策文本
+            parsed_decisions = self._parse_decisions(decision_text)
             
             # 记录聊天
-            await self._save_chat(season_model_id, prompt, decision)
+            await self._save_chat(season_model_id, prompt, decision_text, parsed_decisions)
             
             # 执行交易决策
-            trades = await self._execute_decisions(season_model, decision, market_data)
+            trades = await self._execute_decisions(season_model, decision_text, market_data)
             
             # 更新账户价值
             await self._update_account_value(season_model)
@@ -121,43 +130,64 @@ class LLMStrategy(BaseStrategy):
         market_data: Dict
     ) -> str:
         """构建提示词"""
+        from datetime import datetime
+        
+        # 计算交易时间（模拟）
+        trading_minutes = 5701  # 可以从数据库或配置中获取
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
+        invocation_count = 2695  # 可以从数据库或配置中获取
+        
         # 格式化持仓信息
         positions_str = ""
         if positions:
             for pos in positions:
-                positions_str += f"- {pos.symbol}: {pos.side} {pos.amount} @ ${pos.entry_price:.2f}, "
-                positions_str += f"当前价格: ${pos.current_price:.2f}, "
-                positions_str += f"盈亏: ${pos.unrealized_pnl:.2f} ({pos.profit_percent:.2f}%)\n"
+                positions_str += f"{{'symbol': '{pos.symbol}', 'quantity': {pos.amount}, 'entry_price': {pos.entry_price}, 'current_price': {pos.current_price}, 'liquidation_price': {pos.liquidation_price}, 'unrealized_pnl': {pos.unrealized_pnl}, 'leverage': {pos.leverage}, 'exit_plan': {{'profit_target': {pos.profit_target}, 'stop_loss': {pos.stop_loss}, 'invalidation_condition': '{pos.invalidation_condition}'}}, 'confidence': {pos.confidence}, 'risk_usd': {pos.risk_usd}, 'sl_oid': {pos.sl_oid}, 'tp_oid': {pos.tp_oid}, 'wait_for_fill': {pos.wait_for_fill}, 'entry_oid': {pos.entry_oid}, 'notional_usd': {pos.notional}}} "
         else:
-            positions_str = "无持仓\n"
+            positions_str = "无持仓"
         
         # 格式化市场数据
         market_str = ""
         for symbol, ticker in market_data.items():
             base_symbol = symbol.split('/')[0]
-            market_str += f"- {base_symbol}: ${ticker['last']:.2f}\n"
+            # 为每个币种生成详细的市场数据格式
+            market_str += get_market_data_format(base_symbol, ticker) + "\n\n"
+        
+        # 计算夏普比率（模拟）
+        sharpe_ratio = -0.089  # 可以从数据库或配置中获取
         
         # 使用模型的自定义提示词或默认提示词
         custom_prompt = season_model.model.strategy_prompt or ""
         
+        # 清理自定义提示词中的HTML标签
+        cleaned_custom_prompt = clean_prompt_text(custom_prompt)
+        
         return TRADING_PROMPT_TEMPLATE.format(
+            trading_minutes=trading_minutes,
+            current_time=current_time,
+            invocation_count=invocation_count,
+            market_data=market_str,
+            performance=season_model.performance,
             available_cash=season_model.available_cash,
             total_value=season_model.current_value,
-            performance=season_model.performance,
             positions=positions_str,
-            market_data=market_str
-        ) + f"\n\n## 你的交易风格\n{custom_prompt}"
+            sharpe_ratio=sharpe_ratio,
+            analysis_instructions=get_analysis_instructions(),
+            decision_format=get_decision_format()
+        ) + f"\n\n你的交易风格：\n{cleaned_custom_prompt}"
     
     async def _execute_decisions(
         self,
         season_model: SeasonModel,
-        decision: Dict,
+        decision_text: str,
         market_data: Dict
     ) -> List[Dict]:
         """执行交易决策"""
         trades = []
         
-        for dec in decision.get("decisions", []):
+        # 解析新的决策格式
+        decisions = self._parse_decisions(decision_text)
+        
+        for dec in decisions:
             action = dec.get("action", "HOLD")
             
             if action == "BUY":
@@ -171,6 +201,28 @@ class LLMStrategy(BaseStrategy):
                     trades.append(trade)
         
         return trades
+    
+    def _parse_decisions(self, decision_text: str) -> List[Dict]:
+        """解析决策文本"""
+        import re
+        
+        decisions = []
+        
+        # 匹配格式: SYMBOL ACTION CONFIDENCE%
+        # QUANTITY: amount
+        pattern = r'(\w+)\s+(BUY|SELL|HOLD)\s+(\d+)%\s*\n\s*QUANTITY:\s*([\d.]+)'
+        matches = re.findall(pattern, decision_text, re.MULTILINE)
+        
+        for match in matches:
+            symbol, action, confidence, quantity = match
+            decisions.append({
+                "symbol": symbol,
+                "action": action,
+                "confidence": int(confidence),
+                "quantity": float(quantity)
+            })
+        
+        return decisions
     
     async def _open_position(
         self,
@@ -371,18 +423,33 @@ class LLMStrategy(BaseStrategy):
             logger.error(f"更新账户价值失败: {e}")
             self.db.rollback()
     
-    async def _save_chat(self, season_model_id: str, prompt: str, decision: Dict):
+    async def _save_chat(self, season_model_id: str, prompt: str, decision_text: str, parsed_decisions: List[Dict]):
         """保存聊天记录"""
         try:
-            content = decision.get("reasoning", "")[:200]  # 摘要
+            # 提取chain_of_thought部分
+            chain_of_thought = ""
+            if "### chain_of_thought" in decision_text:
+                start_idx = decision_text.find("### chain_of_thought")
+                end_idx = decision_text.find("### trading_decisions")
+                if end_idx == -1:
+                    end_idx = len(decision_text)
+                chain_of_thought = decision_text[start_idx:end_idx].strip()
+            
+            # 提取trading_decisions部分
+            trading_decisions_text = ""
+            if "### trading_decisions" in decision_text:
+                start_idx = decision_text.find("### trading_decisions")
+                trading_decisions_text = decision_text[start_idx:].strip()
+            
+            content = chain_of_thought[:200] if chain_of_thought else decision_text[:200]  # 摘要
             
             chat = AutomatedChat(
                 id=str(uuid.uuid4()),
                 season_model_id=season_model_id,
                 content=content,
                 user_prompt=prompt,
-                chain_of_thought=decision.get("reasoning", ""),
-                trading_decisions=decision.get("decisions", []),
+                chain_of_thought=chain_of_thought,
+                trading_decisions=parsed_decisions,
                 timestamp=datetime.utcnow()
             )
             

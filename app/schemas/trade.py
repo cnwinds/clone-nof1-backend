@@ -9,45 +9,51 @@ from decimal import Decimal
 
 class TradeBase(BaseModel):
     """交易基础字段"""
-    season_model_id: str
+    seasonModelId: str = Field(..., alias="season_model_id")
     symbol: str = Field(..., description="交易对符号")
     type: str = Field(..., description="交易类型: long/short")
-    entry_price: float = Field(..., description="入场价格")
+    entryPrice: float = Field(..., alias="entry_price", description="入场价格")
     quantity: float = Field(..., description="数量")
-    entry_notional: float = Field(..., description="入场名义价值")
+    entryNotional: float = Field(..., alias="entry_notional", description="入场名义价值")
+
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class TradeCreate(TradeBase):
     """创建交易"""
-    entry_timestamp: datetime = Field(default_factory=datetime.utcnow)
+    entryTimestamp: datetime = Field(default_factory=datetime.utcnow, alias="entry_timestamp")
+
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class TradeUpdate(BaseModel):
     """更新交易（平仓）"""
-    exit_price: float
-    exit_notional: float
-    holding_time: str
+    exitPrice: float = Field(..., alias="exit_price")
+    exitNotional: float = Field(..., alias="exit_notional")
+    holdingTime: str = Field(..., alias="holding_time")
     pnl: float
-    pnl_percent: float
+    pnlPercent: float = Field(..., alias="pnl_percent")
     status: str = "closed"
-    exit_timestamp: datetime = Field(default_factory=datetime.utcnow)
+    exitTimestamp: datetime = Field(default_factory=datetime.utcnow, alias="exit_timestamp")
+
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class TradeResponse(TradeBase):
     """交易响应"""
     id: str
-    exit_price: Optional[float] = None
-    exit_notional: Optional[float] = None
-    holding_time: Optional[str] = None
+    exitPrice: Optional[float] = Field(None, alias="exit_price")
+    exitNotional: Optional[float] = Field(None, alias="exit_notional")
+    holdingTime: Optional[str] = Field(None, alias="holding_time")
     pnl: Optional[float] = None
-    pnl_percent: Optional[float] = None
+    pnlPercent: Optional[float] = Field(None, alias="pnl_percent")
     status: str
-    entry_timestamp: datetime
-    exit_timestamp: Optional[datetime] = None
-    created_at: datetime
+    entryTimestamp: datetime = Field(alias="entry_timestamp")
+    exitTimestamp: Optional[datetime] = Field(None, alias="exit_timestamp")
+    createdAt: datetime = Field(alias="created_at")
     
     # 前端需要的额外字段
-    model_name: Optional[str] = None
+    modelName: Optional[str] = Field(None, alias="model_name")
     
-    model_config = ConfigDict(from_attributes=True, protected_namespaces=())
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True, protected_namespaces=())
 

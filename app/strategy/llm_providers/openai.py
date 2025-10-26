@@ -3,7 +3,6 @@ OpenAI GPT 提供商
 """
 from openai import AsyncOpenAI
 from typing import Dict, Optional
-import json
 import logging
 
 logger = logging.getLogger(__name__)
@@ -20,7 +19,7 @@ class OpenAIProvider:
         prompt: str,
         model: str = "gpt-4",
         temperature: float = 0.7
-    ) -> Dict:
+    ) -> str:
         """
         生成交易决策
         
@@ -30,16 +29,13 @@ class OpenAIProvider:
             temperature: 温度参数
             
         Returns:
-            {
-                "reasoning": "...",
-                "decisions": [...]
-            }
+            决策文本字符串
         """
         try:
             response = await self.client.chat.completions.create(
                 model=model,
                 messages=[
-                    {"role": "system", "content": "你是一个专业的加密货币交易 AI。请严格按照 JSON 格式返回结果。"},
+                    {"role": "system", "content": "你是一个专业的加密货币交易 AI。请严格按照指定的格式返回结果。"},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=temperature,
@@ -47,29 +43,19 @@ class OpenAIProvider:
             )
             
             content = response.choices[0].message.content.strip()
+            return content
             
-            # 尝试解析 JSON
-            # 有时 LLM 会返回 ```json ... ``` 格式
-            if content.startswith("```json"):
-                content = content[7:]
-            if content.startswith("```"):
-                content = content[3:]
-            if content.endswith("```"):
-                content = content[:-3]
-            
-            content = content.strip()
-            
-            result = json.loads(content)
-            return result
-            
-        except json.JSONDecodeError as e:
-            logger.error(f"OpenAI 返回内容无法解析为 JSON: {content}")
-            # 返回默认的 HOLD 决策
-            return {
-                "reasoning": "解析错误，保持现有仓位",
-                "decisions": [{"symbol": "BTC", "action": "HOLD", "quantity": 0, "confidence": 0}]
-            }
         except Exception as e:
             logger.error(f"OpenAI API 调用失败: {e}")
-            raise
+            # 返回默认的 HOLD 决策
+            return """
+### chain_of_thought
+
+解析错误，保持现有仓位
+
+### trading_decisions
+
+BTC HOLD 0%
+QUANTITY: 0
+"""
 

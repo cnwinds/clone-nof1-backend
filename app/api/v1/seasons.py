@@ -13,7 +13,7 @@ from datetime import datetime
 router = APIRouter()
 
 
-@router.get("/seasons", response_model=APIResponse[List[SeasonResponse]])
+@router.get("/seasons")
 async def get_seasons(
     status: Optional[str] = Query(None, description="过滤状态: pending/active/completed"),
     db: Session = Depends(get_db)
@@ -23,7 +23,7 @@ async def get_seasons(
         seasons = SeasonService.get_all_seasons(db, status)
         return APIResponse(
             success=True,
-            data=[SeasonResponse.model_validate(s) for s in seasons],
+            data=[SeasonResponse.model_validate(s).model_dump(by_alias=False) for s in seasons],
             timestamp=datetime.utcnow()
         )
     except Exception as e:
@@ -34,7 +34,7 @@ async def get_seasons(
         )
 
 
-@router.get("/seasons/active", response_model=APIResponse[SeasonResponse])
+@router.get("/seasons/active")
 async def get_active_season(db: Session = Depends(get_db)):
     """获取当前活跃赛季"""
     try:
@@ -48,7 +48,7 @@ async def get_active_season(db: Session = Depends(get_db)):
         
         return APIResponse(
             success=True,
-            data=SeasonResponse.model_validate(season),
+            data=SeasonResponse.model_validate(season).model_dump(by_alias=False),
             timestamp=datetime.utcnow()
         )
     except Exception as e:
@@ -59,7 +59,7 @@ async def get_active_season(db: Session = Depends(get_db)):
         )
 
 
-@router.get("/seasons/{season_id}", response_model=APIResponse[SeasonWithModels])
+@router.get("/seasons/{season_id}")
 async def get_season(season_id: str, db: Session = Depends(get_db)):
     """获取赛季详情（含模型排名）"""
     try:
@@ -80,15 +80,15 @@ async def get_season(season_id: str, db: Session = Depends(get_db)):
             if sm.model.status == "active":
                 models_data.append(SeasonModelSummary(
                     id=sm.id,
-                    model_id=sm.model_id,
-                    display_name=sm.model.display_name,
+                    modelId=sm.model_id,
+                    displayName=sm.model.display_name,
                     color=sm.model.color,
                     icon=sm.model.icon,
-                    current_value=float(sm.current_value),
+                    currentValue=float(sm.current_value),
                     performance=float(sm.performance),
                     rank=sm.rank,
                     status=sm.status
-                ))
+                ).model_dump(by_alias=False))
         
         # 按排名排序
         models_data.sort(key=lambda x: x.rank if x.rank else 999)
@@ -96,7 +96,7 @@ async def get_season(season_id: str, db: Session = Depends(get_db)):
         return APIResponse(
             success=True,
             data=SeasonWithModels(
-                **season_data.model_dump(),
+                **season_data.model_dump(by_alias=False),
                 models=models_data
             ),
             timestamp=datetime.utcnow()
@@ -109,14 +109,14 @@ async def get_season(season_id: str, db: Session = Depends(get_db)):
         )
 
 
-@router.post("/seasons", response_model=APIResponse[SeasonResponse])
+@router.post("/seasons")
 async def create_season(season_data: SeasonCreate, db: Session = Depends(get_db)):
     """创建赛季"""
     try:
         season = SeasonService.create_season(db, season_data)
         return APIResponse(
             success=True,
-            data=SeasonResponse.model_validate(season),
+            data=SeasonResponse.model_validate(season).model_dump(by_alias=False),
             timestamp=datetime.utcnow()
         )
     except Exception as e:
@@ -127,7 +127,7 @@ async def create_season(season_data: SeasonCreate, db: Session = Depends(get_db)
         )
 
 
-@router.post("/seasons/{season_id}/start", response_model=APIResponse[SeasonResponse])
+@router.post("/seasons/{season_id}/start")
 async def start_season(season_id: str, db: Session = Depends(get_db)):
     """启动赛季"""
     try:
@@ -141,7 +141,7 @@ async def start_season(season_id: str, db: Session = Depends(get_db)):
         
         return APIResponse(
             success=True,
-            data=SeasonResponse.model_validate(season),
+            data=SeasonResponse.model_validate(season).model_dump(by_alias=False),
             timestamp=datetime.utcnow()
         )
     except Exception as e:
@@ -152,7 +152,7 @@ async def start_season(season_id: str, db: Session = Depends(get_db)):
         )
 
 
-@router.post("/seasons/{season_id}/end", response_model=APIResponse[SeasonResponse])
+@router.post("/seasons/{season_id}/end")
 async def end_season(season_id: str, db: Session = Depends(get_db)):
     """结束赛季"""
     try:
@@ -166,7 +166,7 @@ async def end_season(season_id: str, db: Session = Depends(get_db)):
         
         return APIResponse(
             success=True,
-            data=SeasonResponse.model_validate(season),
+            data=SeasonResponse.model_validate(season).model_dump(by_alias=False),
             timestamp=datetime.utcnow()
         )
     except Exception as e:
@@ -177,7 +177,7 @@ async def end_season(season_id: str, db: Session = Depends(get_db)):
         )
 
 
-@router.put("/seasons/{season_id}", response_model=APIResponse[SeasonResponse])
+@router.put("/seasons/{season_id}")
 async def update_season(
     season_id: str,
     season_data: SeasonUpdate,
@@ -195,7 +195,7 @@ async def update_season(
         
         return APIResponse(
             success=True,
-            data=SeasonResponse.model_validate(season),
+            data=SeasonResponse.model_validate(season).model_dump(by_alias=False),
             timestamp=datetime.utcnow()
         )
     except Exception as e:
